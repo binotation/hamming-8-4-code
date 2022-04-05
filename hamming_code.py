@@ -22,7 +22,7 @@ def hamming_decode_7_4(x):
         index = _z_to_index(z)
         x[index] ^= 1
 
-    data =_get_data(x)
+    data = _get_data(x)
     return data
 
 def _get_data(x):
