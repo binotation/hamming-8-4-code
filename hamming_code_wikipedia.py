@@ -37,13 +37,13 @@ def _z_to_index(z):
     return int(''.join([str(n) for n in z]), 2)
 
 def main():
-    x = hamming_encode_7_4(np.array([1, 0, 1, 1], dtype=np.uint8))
+    x = hamming_encode_7_4(np.array([1, 0, 0, 0], dtype=np.uint8))
     print(x)
     for i in range(7):
         e = np.zeros(7, dtype=np.uint8)
         e[i] = 1
         z = hamming_decode_7_4((x + e) % 2)
-        assert z == [1, 0, 1, 1]
+        assert z == [1, 0, 0, 0]
 
 if __name__ == '__main__':
     main()
