@@ -29,7 +29,7 @@ def _get_data(x):
     d = []
     for i in (2, 4, 5, 6):
         d.append(x[i])
-    return np.array(d)
+    return np.array(d, dtype=np.uint8)
 
 def _z_to_index(z):
     z = list(z)
@@ -50,10 +50,10 @@ def main():
         hamming_encode_7_4(expected_z[3])
     )
     expected_x = (
-        np.array([0, 1, 1, 0, 0, 1, 1]),
-        np.array([1, 1, 1, 0, 0, 0, 0]),
-        np.array([1, 1, 1, 1, 1, 1, 1]),
-        np.array([1, 0, 1, 1, 0, 1, 0])
+        np.array([0, 1, 1, 0, 0, 1, 1], dtype=np.uint8),
+        np.array([1, 1, 1, 0, 0, 0, 0], dtype=np.uint8),
+        np.array([1, 1, 1, 1, 1, 1, 1], dtype=np.uint8),
+        np.array([1, 0, 1, 1, 0, 1, 0], dtype=np.uint8)
     )
     for i, c in enumerate(x):
         assert np.array_equal(c, expected_x[i])
