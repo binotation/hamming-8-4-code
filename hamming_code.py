@@ -16,10 +16,10 @@ def hamming_decode_7_4(x):
         [[1, 0, 0, 0, 1, 1, 1],
          [0, 1, 0, 1, 0, 1, 1],
          [0, 0, 1, 1, 1, 0, 1]], dtype=np.uint8)
-    z = (H @ x) % 2
+    s = (H @ x) % 2
 
-    if z.sum() > 0:
-        index = _z_to_index(z)
+    if s.sum() > 0:
+        index = _s_to_index(s)
         x[index] ^= 1
 
     data = _get_data(x)
@@ -31,29 +31,32 @@ def _get_data(x):
         d.append(x[i])
     return np.array(d, dtype=np.uint8)
 
-def _z_to_index(z):
-    z = list(z)
-    index = int(''.join([str(n) for n in z]), 2)
+def _s_to_index(s):
+    s = list(s)
+    index = int(''.join([str(n) for n in s]), 2)
     return (4, 2, 1, 3, 5, 6, 7).index(index)
 
 def main():
-    expected_z = (
+    n = (
         np.array([1, 0, 1, 1], dtype=np.uint8),
         np.array([1, 0, 0, 0], dtype=np.uint8),
         np.array([1, 1, 1, 1], dtype=np.uint8),
-        np.array([1, 0, 1, 0], dtype=np.uint8)
+        np.array([1, 0, 1, 0], dtype=np.uint8),
+        np.array([1, 1, 0, 0], dtype=np.uint8)
     )
     x = (
-        hamming_encode_7_4(expected_z[0]),
-        hamming_encode_7_4(expected_z[1]),
-        hamming_encode_7_4(expected_z[2]),
-        hamming_encode_7_4(expected_z[3])
+        hamming_encode_7_4(n[0]),
+        hamming_encode_7_4(n[1]),
+        hamming_encode_7_4(n[2]),
+        hamming_encode_7_4(n[3]),
+        hamming_encode_7_4(n[4])
     )
     expected_x = (
         np.array([0, 1, 0, 1, 0, 1, 1], dtype=np.uint8),
         np.array([0, 1, 1, 1, 0, 0, 0], dtype=np.uint8),
         np.array([1, 1, 1, 1, 1, 1, 1], dtype=np.uint8),
-        np.array([1, 0, 1, 1, 0, 1, 0], dtype=np.uint8)
+        np.array([1, 0, 1, 1, 0, 1, 0], dtype=np.uint8),
+        np.array([1, 1, 0, 1, 1, 0, 0], dtype=np.uint8)
     )
     for i, c in enumerate(x):
         assert np.array_equal(c, expected_x[i])
@@ -62,8 +65,8 @@ def main():
         for i in range(7):
             e = np.zeros(7, dtype=np.uint8)
             e[i] = 1
-            z = hamming_decode_7_4((c + e) % 2)
-            assert np.array_equal(z, expected_z[j])
+            d = hamming_decode_7_4((c + e) % 2)
+            assert np.array_equal(d, n[j])
     print('All single-bit errors were successfully corrected')
 
 if __name__ == '__main__':
