@@ -2,30 +2,29 @@
 enum ErrorType {
     NoError,
     SingleBitError,
-    DoubleBitError,
     ParityBitError,
+    DoubleBitError,
 }
 
-/// Encode n using hamming(8, 4).
+/// Encode n using Hamming(8, 4).
 ///     h 2 1 0 d 3 2 1 0   d
 /// G = [ 0 1 1 | 1 0 0 0   3
 ///       1 0 1 | 0 1 0 0   2
 ///       1 1 0 | 0 0 1 0   1
 ///       1 1 1 | 0 0 0 1 ] 0
-/// h = nG: (h2 h1 h0 d3 d2 d1 d0)
-/// returns:
-///     concatenated z bits + parity bit
-///     i.e. h2 h1 h0 d3 d2 d1 d0 p
+/// x = nG: (h2 h1 h0 d3 d2 d1 d0)
+/// Returns:
+///     x bits + parity bit i.e. h2 h1 h0 d3 d2 d1 d0 p
 fn hamming_encode(n: u8) -> u8 {
+    // Data bits
     let d: [u8; 4] = [n >> 0 & 1, n >> 1 & 1, n >> 2 & 1, n >> 3 & 1];
+
+    // Calculate Hamming bits using G
     let h: [u8; 3] = [d[3] ^ d[2] ^ d[0], d[3] ^ d[1] ^ d[0], d[2] ^ d[1] ^ d[0]];
-    let mut p: u8 = 0;
-    for i in d {
-        p ^= i;
-    }
-    for i in h {
-        p ^= i;
-    }
+
+    // Calculate parity bit
+    let p: u8 = h[2] ^ h[1] ^ h[0] ^ d[3] ^ d[2] ^ d[1] ^ d[0];
+
     h[2] << 7 | h[1] << 6 | h[0] << 5 | d[3] << 4 | d[2] << 3 | d[1] << 2 | d[0] << 1 | p
 }
 
@@ -35,8 +34,7 @@ fn hamming_encode(n: u8) -> u8 {
 ///       0 1 0 | 1 0 1 1   1
 ///       0 0 1 | 1 1 0 1 ] 2
 /// s = Hx: (s0 s1 s2)^T
-/// returns error-corrected data bits
-/// i.e. error-corrected x4 x3 x2 x1
+/// Returns: error-corrected data bits i.e. error-corrected x4 x3 x2 x1
 fn hamming_decode(x: u8) -> (u8, ErrorType) {
     // Calculate syndrome bits using H
     let s: [u8; 3] = [
@@ -60,8 +58,8 @@ fn hamming_decode(x: u8) -> (u8, ErrorType) {
         ^ (x >> 3 & 1)
         ^ (x >> 2 & 1)
         ^ (x >> 1 & 1);
-    let error_type;
 
+    let error_type;
     if x & 1 != x_parity {
         if incorrect_bit > 0 {
             error_type = ErrorType::SingleBitError;
