@@ -77,13 +77,29 @@ fn hamming_decode(x: u8) -> (u8, ErrorType) {
 }
 
 fn main() {
-    const N: [u8; 4] = [0b00001011, 0b00001000, 0b00001111, 0b00001010];
-    const EXPECTED_X: [u8; 4] = [0b01010110, 0b01110001, 0b11111111, 0b10110100];
-    let x: [u8; 4] = [
+    const N: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    // Calculated by hand (x = nG)
+    const EXPECTED_X: [u8; 16] = [
+        0, 0b11100010, 0b11000101, 0b00100111, 0b10101001, 0b01001011, 0b01101100, 0b10001110,
+        0b01110001, 0b10010011, 0b10110100, 0b01010110, 0b11011000, 0b00111010, 0b00011101, 0xFF,
+    ];
+    let x = [
         hamming_encode(N[0]),
         hamming_encode(N[1]),
         hamming_encode(N[2]),
         hamming_encode(N[3]),
+        hamming_encode(N[4]),
+        hamming_encode(N[5]),
+        hamming_encode(N[6]),
+        hamming_encode(N[7]),
+        hamming_encode(N[8]),
+        hamming_encode(N[9]),
+        hamming_encode(N[10]),
+        hamming_encode(N[11]),
+        hamming_encode(N[12]),
+        hamming_encode(N[13]),
+        hamming_encode(N[14]),
+        hamming_encode(N[15]),
     ];
 
     test_expected_x(&x, &EXPECTED_X);
@@ -93,7 +109,7 @@ fn main() {
     println!("ALL TESTS PASSED!!!!!!!!");
 }
 
-fn test_double_bit_error(x: &[u8; 4]) {
+fn test_double_bit_error(x: &[u8]) {
     let mut count;
     let mut errored;
     let mut decoded;
@@ -131,7 +147,7 @@ fn test_double_bit_error(x: &[u8; 4]) {
     println!("Double-bit errors were successfully detected");
 }
 
-fn test_no_error(x: &[u8; 4], n: &[u8; 4]) {
+fn test_no_error(x: &[u8], n: &[u8]) {
     let mut decoded;
     for (i, c) in x.iter().enumerate() {
         decoded = hamming_decode(*c);
@@ -141,7 +157,7 @@ fn test_no_error(x: &[u8; 4], n: &[u8; 4]) {
     println!("Data with no errors successfully decoded.");
 }
 
-fn test_single_bit_or_parity_error(x: &[u8; 4], n: &[u8; 4]) {
+fn test_single_bit_or_parity_error(x: &[u8], n: &[u8]) {
     let mut decoded;
     for (i, c) in x.iter().enumerate() {
         for j in 0..8 {
@@ -158,7 +174,7 @@ fn test_single_bit_or_parity_error(x: &[u8; 4], n: &[u8; 4]) {
     println!("Single-bit/parity-bit errors were successfully error corrected");
 }
 
-fn test_expected_x(x: &[u8; 4], expected_x: &[u8; 4]) {
+fn test_expected_x(x: &[u8], expected_x: &[u8]) {
     for (i, c) in x.iter().enumerate() {
         assert_eq!(*c, expected_x[i]);
     }
