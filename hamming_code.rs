@@ -46,11 +46,17 @@ fn hamming_decode(x: u8) -> (u8, ErrorType) {
     // Parse syndrome bits taking left bits to be more significant.
     let syndrome: usize = (s[0] as usize) << 2 | (s[1] as usize) << 1 | (s[2] as usize) << 0;
 
-    // Map syndrome to incorrect bit position: 7 -> 1, 6 -> 2, 5 -> 3, 3 -> 4, 1 -> 5, 2 -> 6, 4 -> 7
-    // e.g. if syndrome = 4 then flip bit x7.
-    const SYNDROME_TO_BIT: [usize; 8] = [0, 5, 6, 4, 7, 3, 2, 1];
-    let incorrect_bit = SYNDROME_TO_BIT[syndrome];
-    let data = (x ^ 1 << incorrect_bit) >> 1 & 0xF; // Flip incorrect bit and return data bits
+    let data = if syndrome > 0 {
+        // Map syndrome to incorrect bit position: 7 -> 1, 6 -> 2, 5 -> 3, 3 -> 4, 1 -> 5, 2 -> 6, 4 -> 7
+        // e.g. if syndrome = 4 then flip bit x7.
+        const SYNDROME_TO_BIT: [u8; 8] = [0, 5, 6, 4, 7, 3, 2, 1];
+        let incorrect_bit = SYNDROME_TO_BIT[syndrome];
+        (x ^ 1 << incorrect_bit) >> 1 & 0xF
+    } else {
+        x >> 1 & 0xF
+    };
+
+    // Determine error type
     let x_parity = (x >> 7 & 1)
         ^ (x >> 6 & 1)
         ^ (x >> 5 & 1)
@@ -61,13 +67,13 @@ fn hamming_decode(x: u8) -> (u8, ErrorType) {
 
     let error_type;
     if x & 1 != x_parity {
-        if incorrect_bit > 0 {
+        if syndrome > 0 {
             error_type = ErrorType::SingleBitError;
         } else {
             error_type = ErrorType::ParityBitError;
         }
     } else {
-        if incorrect_bit == 0 {
+        if syndrome == 0 {
             error_type = ErrorType::NoError;
         } else {
             error_type = ErrorType::DoubleBitError;
