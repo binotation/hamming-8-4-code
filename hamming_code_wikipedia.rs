@@ -1,4 +1,4 @@
-/// Hamming(8, 4) implementation.
+/// Hamming(8, 4) implementation - based on Wikipedia's G and H matrices.
 /// Encode 4-bits using hamming_encode().
 /// Error-correct 8-bit encoding using hamming_error_correct().
 /// Decode 8-bit encoding to 4-bits of data using hamming_decode().
@@ -13,11 +13,11 @@ enum ErrorType {
 }
 
 /// Encode n in Hamming(8, 4).
-///     d 3 2 1 0 h 2 1 0   d
-/// G = [ 1 0 0 0 | 0 1 1   3
-///       0 1 0 0 | 1 0 1   2
-///       0 0 1 0 | 1 1 0   1
-///       0 0 0 1 | 1 1 1 ] 0
+///     x 7 6 5 4   3 2 1 0   d
+/// G = [ 1 1 1 0 | 0 0 0 1   3
+///       1 0 0 1 | 1 0 0 1   2
+///       0 1 0 1 | 0 1 0 1   1
+///       1 1 0 1 | 0 0 1 0 ] 0
 /// x = nG: (d3 d2 d1 d0 h2 h1 h0)
 /// Returns:
 ///     x bits + parity bit i.e. d3 d2 d1 d0 h2 h1 h0 p
@@ -26,27 +26,33 @@ fn hamming_encode(n: u8) -> u8 {
     let d: [u8; 4] = [n >> 0 & 1, n >> 1 & 1, n >> 2 & 1, n >> 3 & 1];
 
     // Calculate Hamming bits using G
-    let h: [u8; 3] = [d[3] ^ d[2] ^ d[0], d[3] ^ d[1] ^ d[0], d[2] ^ d[1] ^ d[0]];
+    let x: [u8; 8] = [
+        d[3] ^ d[2] ^ d[1],
+        d[0],
+        d[1],
+        d[2],
+        d[2] ^ d[1] ^ d[0],
+        d[3],
+        d[3] ^ d[1] ^ d[0],
+        d[3] ^ d[2] ^ d[0],
+    ];
 
-    // Calculate parity bit
-    let p: u8 = d[3] ^ d[2] ^ d[1] ^ d[0] ^ h[2] ^ h[1] ^ h[0];
-
-    d[3] << 7 | d[2] << 6 | d[1] << 5 | d[0] << 4 | h[2] << 3 | h[1] << 2 | h[0] << 1 | p
+    x[7] << 7 | x[6] << 6 | x[5] << 5 | x[4] << 4 | x[3] << 3 | x[2] << 2 | x[1] << 1 | x[0]
 }
 
 /// Error correct a Hamming(8, 4) encoded byte using H.
 ///     x 7 6 5 4   3 2 1   s
-/// H = [ 0 1 1 1 | 1 0 0   0
-///       1 0 1 1 | 0 1 0   1
-///       1 1 0 1 | 0 0 1 ] 2
+/// H = [ 1 0 1 0 | 1 0 1   0
+///       0 1 1 0 | 0 1 1   1
+///       0 0 0 1 | 1 1 1 ] 2
 /// s = Hx: (s0 s1 s2)^T, map s to incorrect bit position
 /// Returns: error corrected byte
 fn hamming_error_correct(x: u8) -> (u8, ErrorType) {
     // Calculate syndrome bits using H
     let s: [u8; 3] = [
-        (x >> 6 & 1) ^ (x >> 5 & 1) ^ (x >> 4 & 1) ^ (x >> 3 & 1),
-        (x >> 7 & 1) ^ (x >> 5 & 1) ^ (x >> 4 & 1) ^ (x >> 2 & 1),
-        (x >> 7 & 1) ^ (x >> 6 & 1) ^ (x >> 4 & 1) ^ (x >> 1 & 1),
+        (x >> 7 & 1) ^ (x >> 5 & 1) ^ (x >> 3 & 1) ^ (x >> 1 & 1),
+        (x >> 6 & 1) ^ (x >> 5 & 1) ^ (x >> 2 & 1) ^ (x >> 1 & 1),
+        (x >> 4 & 1) ^ (x >> 3 & 1) ^ (x >> 2 & 1) ^ (x >> 1 & 1),
     ];
 
     let syndrome: usize = (s[2] << 2 | s[1] << 1 | s[0] << 0) as usize;
@@ -78,7 +84,7 @@ fn hamming_error_correct(x: u8) -> (u8, ErrorType) {
     // Double-bit error cannot be corrected, but try anyway.
     // Map syndrome to incorrect bit position, e.g. if syndrome = 4 then flip bit x3.
     // Syndrome should not be 0 at this point.
-    const SYNDROME_TO_BIT: [u8; 8] = [u8::MAX, 3, 2, 5, 1, 6, 7, 4];
+    const SYNDROME_TO_BIT: [u8; 8] = [u8::MAX, 7, 6, 5, 4, 3, 2, 1];
     let incorrect_bit = SYNDROME_TO_BIT[syndrome];
     (x ^ 1 << incorrect_bit, error_type)
 }
@@ -86,15 +92,16 @@ fn hamming_error_correct(x: u8) -> (u8, ErrorType) {
 /// Returns: error-corrected data bits i.e. error-corrected x7 x6 x5 x4
 fn hamming_decode(x: u8) -> (u8, ErrorType) {
     let (data, error_type) = hamming_error_correct(x);
-    (data >> 4 & 0xF, error_type)
+    let d: [u8; 4] = [data >> 1 & 1, data >> 2 & 1, data >> 3 & 1, data >> 5 & 1];
+    (d[3] << 3 | d[2] << 2 | d[1] << 1 | d[0] << 0, error_type)
 }
 
 fn main() {
     const N: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
     // Calculated by hand (x = nG)
     const EXPECTED_X: [u8; 16] = [
-        0, 0b00011110, 0b00101101, 0b00110011, 0b01001011, 0b01010101, 0b01100110, 0b01111000,
-        0b10000111, 0b10011001, 0b10101010, 0b10110100, 0b11001100, 0b11010010, 0b11100001, 0xFF,
+        0, 0b11010010, 0b01010101, 0b10000111, 0b10011001, 0b01001011, 0b11001100, 0b00011110,
+        0b11100001, 0b00110011, 0b10110100, 0b01100110, 0b01111000, 0b10101010, 0b00101101, 0xFF,
     ];
     let x = [
         hamming_encode(N[0]),
