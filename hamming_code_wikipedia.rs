@@ -13,14 +13,14 @@ enum ErrorType {
 }
 
 /// Encode n in Hamming(8, 4).
-///     x 7 6 5 4   3 2 1 0   d
-/// G = [ 1 1 1 0 | 0 0 0 1   3
-///       1 0 0 1 | 1 0 0 1   2
-///       0 1 0 1 | 0 1 0 1   1
-///       1 1 0 1 | 0 0 1 0 ] 0
-/// x = nG: (d3 d2 d1 d0 h2 h1 h0)
+///     x 7 6 5 4 3 2 1 0   d
+/// G = [ 1 1 1 0 0 0 0 1   3
+///       1 0 0 1 1 0 0 1   2
+///       0 1 0 1 0 1 0 1   1
+///       1 1 0 1 0 0 1 0 ] 0
+/// x = nG: (x7 x6 x5 x4 x3 x2 x1 x0)
 /// Returns:
-///     x bits + parity bit i.e. d3 d2 d1 d0 h2 h1 h0 p
+///     x bits
 fn hamming_encode(n: u8) -> u8 {
     // Data bits
     let d: [u8; 4] = [n >> 0 & 1, n >> 1 & 1, n >> 2 & 1, n >> 3 & 1];
@@ -41,10 +41,10 @@ fn hamming_encode(n: u8) -> u8 {
 }
 
 /// Error correct a Hamming(8, 4) encoded byte using H.
-///     x 7 6 5 4   3 2 1   s
-/// H = [ 1 0 1 0 | 1 0 1   0
-///       0 1 1 0 | 0 1 1   1
-///       0 0 0 1 | 1 1 1 ] 2
+///     x 7 6 5 4 3 2 1   s
+/// H = [ 1 0 1 0 1 0 1   0
+///       0 1 1 0 0 1 1   1
+///       0 0 0 1 1 1 1 ] 2
 /// s = Hx: (s0 s1 s2)^T, map s to incorrect bit position
 /// Returns: error corrected byte
 fn hamming_error_correct(x: u8) -> (u8, ErrorType) {
