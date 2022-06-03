@@ -1,3 +1,4 @@
+/// Bit error types.
 #[derive(Debug, PartialEq)]
 enum ErrorType {
     NoError,
@@ -44,7 +45,7 @@ fn hamming_error_correct(x: u8) -> (u8, ErrorType) {
     ];
 
     // Parse syndrome bits taking left bits to be more significant.
-    let syndrome: usize = (s[0] as usize) << 2 | (s[1] as usize) << 1 | (s[2] as usize) << 0;
+    let syndrome: usize = (s[0] << 2 | s[1] << 1 | s[2] << 0) as usize;
 
     let x_parity = (x >> 7 & 1)
         ^ (x >> 6 & 1)
@@ -69,8 +70,10 @@ fn hamming_error_correct(x: u8) -> (u8, ErrorType) {
         }
     }
 
-    // Other cases: single-bit or double-bit error
+    // Other cases: single-bit or double-bit error.
+    // Double-bit error cannot be corrected, but try anyway.
     // Map syndrome to incorrect bit position, e.g. if syndrome = 4 then flip bit x3.
+    // Syndrome should not be 0 at this point.
     const SYNDROME_TO_BIT: [u8; 8] = [u8::MAX, 1, 2, 7, 3, 6, 5, 4];
     let incorrect_bit = SYNDROME_TO_BIT[syndrome];
     (x ^ 1 << incorrect_bit, error_type)
@@ -153,36 +156,43 @@ fn test_double_bit_error(x: &[u8]) {
     println!("Double-bit errors were successfully detected");
 }
 
+/// Test no-error if decoding the encoded byte.
 fn test_no_error(x: &[u8], n: &[u8]) {
     let mut decoded;
-    for (i, c) in x.iter().enumerate() {
-        decoded = hamming_decode(*c);
-        assert_eq!(decoded.0, n[i]);
-        assert_eq!(decoded.1, ErrorType::NoError);
+    let mut error_type;
+
+    for (i, encoded) in x.iter().enumerate() {
+        (decoded, error_type) = hamming_decode(*encoded);
+        assert_eq!(decoded, n[i]);
+        assert_eq!(error_type, ErrorType::NoError);
     }
-    println!("Data with no errors successfully decoded.");
+    println!("Unchanged encodings successfully decoded.");
 }
 
+/// For each encoded x byte, flip every bit and check if the decoded 4 bits are correct.
 fn test_single_bit_or_parity_error(x: &[u8], n: &[u8]) {
     let mut decoded;
-    for (i, c) in x.iter().enumerate() {
-        for j in 0..8 {
-            let errored = *c ^ 1 << j;
-            decoded = hamming_decode(errored);
-            assert_eq!(decoded.0, n[i]);
-            if j == 0 {
-                assert_eq!(decoded.1, ErrorType::ParityBitError);
+    let mut error_type;
+
+    for (i, encoded) in x.iter().enumerate() {
+        for bit in 0..8 {
+            let errored = *encoded ^ 1 << bit;
+            (decoded, error_type) = hamming_decode(errored);
+            assert_eq!(decoded, n[i]);
+            if bit == 0 {
+                assert_eq!(error_type, ErrorType::ParityBitError);
             } else {
-                assert_eq!(decoded.1, ErrorType::SingleBitError);
+                assert_eq!(error_type, ErrorType::SingleBitError);
             }
         }
     }
     println!("Single-bit/parity-bit errors were successfully error corrected");
 }
 
+/// Assert each x matches expected x.
 fn test_expected_x(x: &[u8], expected_x: &[u8]) {
-    for (i, c) in x.iter().enumerate() {
-        assert_eq!(*c, expected_x[i]);
+    for (i, encoded) in x.iter().enumerate() {
+        assert_eq!(*encoded, (*expected_x)[i]);
     }
     println!("Encoded data matches expected");
 }
