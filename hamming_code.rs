@@ -1,3 +1,8 @@
+/// Hamming(8, 4) implementation.
+/// Encode 4-bits using hamming_encode().
+/// Error-correct 8-bit encoding using hamming_error_correct().
+/// Decode 8-bit encoding to 4-bits of data using hamming_decode().
+
 /// Bit error types.
 #[derive(Debug, PartialEq)]
 enum ErrorType {
@@ -118,42 +123,22 @@ fn main() {
     println!("ALL TESTS PASSED!!!!!!!!");
 }
 
+/// Check every combination of 2-bit errors is detected for each encoded x.
 fn test_double_bit_error(x: &[u8]) {
-    let mut count;
-    let mut errored;
-    let mut decoded;
-    let mut e1;
-    let mut e2;
+    const NUM_BITS: u8 = 8;
+    let mut error_type;
     let mut e;
 
-    for c in x {
-        e1 = 1;
-        e2 = 2;
-        count = 0;
-
-        // 8 choose 2 = 28 combinations. Can't think of a better way to do this.
-        while e1 >> 6 & 1 == 0 {
-            while e2 >> 7 & 1 == 0 {
-                e = e1 | e2;
-                errored = *c ^ e;
-                decoded = hamming_decode(errored);
-                assert_eq!(decoded.1, ErrorType::DoubleBitError);
-                e2 <<= 1;
-                count = count + 1;
+    for encoded in x {
+        for i in 0..NUM_BITS - 1 {
+            for j in i + 1..NUM_BITS {
+                e = 1 << i | 1 << j;
+                (_, error_type) = hamming_decode(encoded ^ e);
+                assert_eq!(error_type, ErrorType::DoubleBitError);
             }
-            e1 <<= 1;
-            e2 = e1 << 1;
         }
-        for i in 0..=6 {
-            e = e1 >> i | e2;
-            errored = *c ^ e;
-            decoded = hamming_decode(errored);
-            assert_eq!(decoded.1, ErrorType::DoubleBitError);
-            count = count + 1;
-        }
-        assert_eq!(count, 28); // Sanity check
     }
-    println!("Double-bit errors were successfully detected");
+    println!("Double-bit errors successfully detected.");
 }
 
 /// Test no-error if decoding the encoded byte.
@@ -166,7 +151,7 @@ fn test_no_error(x: &[u8], n: &[u8]) {
         assert_eq!(decoded, n[i]);
         assert_eq!(error_type, ErrorType::NoError);
     }
-    println!("Unchanged encodings successfully decoded.");
+    println!("Unchanged encodings successfully detected and decoded.");
 }
 
 /// For each encoded x byte, flip every bit and check if the decoded 4 bits are correct.
@@ -186,7 +171,7 @@ fn test_single_bit_or_parity_error(x: &[u8], n: &[u8]) {
             }
         }
     }
-    println!("Single-bit/parity-bit errors were successfully error corrected");
+    println!("Single-bit/parity-bit errors successfully detected and error-corrected.");
 }
 
 /// Assert each x matches expected x.
@@ -194,5 +179,5 @@ fn test_expected_x(x: &[u8], expected_x: &[u8]) {
     for (i, encoded) in x.iter().enumerate() {
         assert_eq!(*encoded, (*expected_x)[i]);
     }
-    println!("Encoded data matches expected");
+    println!("Encoded data matches expected.");
 }
